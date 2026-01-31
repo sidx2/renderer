@@ -182,6 +182,10 @@ export class Renderer {
             this.drawMesh(entity, entity.material.color, camera);
         }
     }
+    clearCanvas(color) {
+        this.gl.clearColor(color[0], color[1], color[2], 1); // dark gray background
+        this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
+    }
     drawMesh(entity, color, camera) {
         this.gl.bindVertexArray(entity.mesh.vao);
         if (!entity.mesh.indexCount) {

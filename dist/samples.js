@@ -5,5 +5,6 @@ const cubeData = parseObj(cubeObj);
 const cubeGeometry = new Geometry(cubeData.vertices, cubeData.normals, cubeData.textures);
 const cubeMesh = new Mesh(cubeGeometry);
 export const Samples = {
+    cubeGeometry,
     cubeMesh,
 };

@@ -13,5 +13,6 @@ const cubeGeometry = new Geometry(
 const cubeMesh = new Mesh(cubeGeometry);
 
 export const Samples = {
+    cubeGeometry,
     cubeMesh,
 }

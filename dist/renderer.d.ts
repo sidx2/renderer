@@ -82,6 +82,7 @@ export declare class Renderer {
     private depth;
     private _initializeProgram;
     render(scene: Scene, camera: Camera): void;
+    clearCanvas(color: vec3): void;
     drawMesh(entity: Entity, color: vec3, camera: mat4): void;
     drawLines(entity: Entity, color?: vec3): void;
     createMesh(geometry: Geometry, drawType?: GLenum): Mesh;

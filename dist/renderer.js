@@ -19,12 +19,14 @@ export class Geometry {
     }
 }
 export class Mesh {
-    constructor() {
+    constructor(geometry) {
         this.geometry = null;
         this.vao = null;
         this.indexCount = null;
         this.verticesCount = null;
         this.indexed = null;
+        if (geometry)
+            this.geometry = geometry;
     }
 }
 export class Transform {
@@ -127,7 +129,14 @@ export class TransformGizmo {
     }
 }
 export class Renderer {
-    constructor(gl, w, h) {
+    constructor(canvas) {
+        this.canvas = canvas;
+        const gl = this.canvas.getContext("webgl2");
+        const w = canvas.width;
+        const h = canvas.height;
+        if (gl === null) {
+            throw "WebGL 2 is not supported";
+        }
         this.gl = gl;
         this.program = this._initializeProgram();
         gl.enable(gl.DEPTH_TEST);

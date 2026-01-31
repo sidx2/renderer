@@ -20,6 +20,7 @@ export declare class Mesh {
     indexCount: number | null;
     verticesCount: number | null;
     indexed: boolean | null;
+    constructor(geometry?: Geometry);
 }
 type P = {
     position: vec3;
@@ -74,9 +75,10 @@ export declare class TransformGizmo {
     startPointWorld: vec3 | null;
 }
 export declare class Renderer {
-    gl: WebGL2RenderingContext;
-    program: WebGLProgram;
-    constructor(gl: WebGL2RenderingContext, w: number, h: number);
+    private gl;
+    private program;
+    private canvas;
+    constructor(canvas: HTMLCanvasElement);
     private depth;
     private _initializeProgram;
     render(scene: Scene, camera: Camera): void;

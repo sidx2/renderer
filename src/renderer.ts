@@ -44,6 +44,10 @@ export class Mesh {
     indexCount: number | null = null;
     verticesCount: number | null = null;
     indexed: boolean | null = null;
+
+    constructor(geometry?: Geometry) {
+        if (geometry) this.geometry = geometry;
+    }
 }
 
 type P = {
@@ -197,11 +201,22 @@ export class TransformGizmo {
 }
 
 export class Renderer {
-    gl: WebGL2RenderingContext
-    program: WebGLProgram;
+    private gl: WebGL2RenderingContext
+    private program: WebGLProgram;
+    private canvas: HTMLCanvasElement;
+    
 
-    constructor(gl: WebGL2RenderingContext, w: number, h: number) {
-        this.gl = gl!;
+    constructor(canvas: HTMLCanvasElement) {
+        this.canvas = canvas;
+        const gl = this.canvas.getContext("webgl2");
+        const w = canvas.width;
+        const h = canvas.height;
+
+        if (gl === null) {
+            throw "WebGL 2 is not supported";
+        }
+
+        this.gl = gl;
 
         this.program = this._initializeProgram();
 

@@ -2,7 +2,7 @@ import { mat3, mat4, quat, vec2, vec3 } from "gl-matrix";
 import { vertexShaderSource, fragmentShaderSource } from "./shaders";
 import { transformVertices } from "./utils";
 import { gjk3d } from "./gjk";
-class Input {
+export class Input {
     constructor() {
         this.mousePos = vec2.create();
         this.mouseDelta = vec2.create();
@@ -10,7 +10,7 @@ class Input {
         this.keys = new Set();
     }
 }
-class Geometry {
+export class Geometry {
     constructor(positions, normals, uvs, indices) {
         this.positions = positions;
         this.normals = normals;
@@ -18,7 +18,7 @@ class Geometry {
         this.indices = indices;
     }
 }
-class Mesh {
+export class Mesh {
     constructor() {
         this.geometry = null;
         this.vao = null;
@@ -27,7 +27,7 @@ class Mesh {
         this.indexed = null;
     }
 }
-class Transform {
+export class Transform {
     constructor(params = {
         position: vec3.create(),
         rotation: quat.create(),
@@ -54,7 +54,7 @@ class Transform {
         return t;
     }
 }
-class Material {
+export class Material {
     constructor(color = vec3.fromValues(1, 1, 1)) {
         this.color = color;
     }
@@ -84,7 +84,7 @@ export class Entity {
         return e;
     }
 }
-class Scene {
+export class Scene {
     constructor() {
         this.entities = [];
     }
@@ -92,7 +92,7 @@ class Scene {
         this.entities.push(entity);
     }
 }
-class CollisionSystem {
+export class CollisionSystem {
     constructor() {
         this.collisions = [];
     }
@@ -113,12 +113,12 @@ class CollisionSystem {
         }
     }
 }
-class Selection {
+export class Selection {
     constructor() {
         this.entity = null;
     }
 }
-class TransformGizmo {
+export class TransformGizmo {
     constructor() {
         this.mode = "translate";
         this.axis = null;
@@ -126,7 +126,7 @@ class TransformGizmo {
         this.startPointWorld = null;
     }
 }
-class Renderer {
+export class Renderer {
     constructor(gl, w, h) {
         this.gl = gl;
         this.program = this._initializeProgram();

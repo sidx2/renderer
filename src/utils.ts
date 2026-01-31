@@ -1,11 +1,6 @@
 import { vec3, vec4, mat4, quat2, quat } from "gl-matrix";
 import { Entity } from "./renderer";
-
-export interface GPUObj {
-    vertices: Float32Array | null;
-    normals: Float32Array | null;
-    textures: Float32Array | null;
-}
+import { GPUObj } from "./parser";
 
 export const transformVertices = (vertices: number[], model: mat4): number[] => {
     const out: number[] = [];

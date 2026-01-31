@@ -42,3 +42,7 @@ const loop = () => {
 
 loop();
 ```
+
+## Output
+
+<video controls type="video/mp4" src="./output.mp4" autoplay>

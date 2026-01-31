@@ -3,4 +3,5 @@ export * from "./parser";
 export * from "./renderer";
 export * from "./utils";
 export * from "./gjk";
+export * from "./samples";
 //# sourceMappingURL=index.d.ts.map

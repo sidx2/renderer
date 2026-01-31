@@ -26,5 +26,8 @@
   "homepage": "https://github.com/sidx2/renderer#readme",
   "devDependencies": {
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "gl-matrix": "^3.4.4"
   }
 }

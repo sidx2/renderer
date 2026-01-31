@@ -3,7 +3,7 @@ import { vertexShaderSource, fragmentShaderSource } from "./shaders";
 import { screenPointToRay, rayTriangleIntersection, makeGizmo, transformVertices, orientZAxisGizmo, transformRay } from "./utils"
 import { gjk3d } from "./gjk";
 
-class Input {
+export class Input {
     mousePos: vec2;
     mouseDelta: vec2;
     mouseDown: boolean;
@@ -19,7 +19,7 @@ class Input {
 
 type Camera = mat4;
 
-class Geometry {
+export class Geometry {
     positions: Float32Array;
     normals?: Float32Array;
     uvs?: Float32Array;
@@ -38,7 +38,7 @@ class Geometry {
     }
 }
 
-class Mesh {
+export class Mesh {
     geometry: Geometry | null = null;
     vao: WebGLVertexArrayObject | null = null;
     indexCount: number | null = null;
@@ -52,7 +52,7 @@ type P = {
     scale: vec3
 };
 
-class Transform {
+export class Transform {
     position: vec3 = vec3.create();
     rotation: quat = quat.create();
     scale: vec3 = vec3.fromValues(1, 1, 1);
@@ -87,7 +87,7 @@ class Transform {
     }
 }
 
-class Material {
+export class Material {
     color: vec3;
 
     constructor(color: vec3 = vec3.fromValues(1, 1, 1)) {
@@ -143,7 +143,7 @@ export class Entity {
     
 }
 
-class Scene {
+export class Scene {
     entities: Entity[] = [];
 
     add(entity: Entity) {
@@ -158,7 +158,7 @@ type Collision = {
     penetration?: number;
 }
 
-class CollisionSystem {
+export class CollisionSystem {
     collisions: Collision[] = [];
 
     constructor() {
@@ -184,11 +184,11 @@ class CollisionSystem {
     }
 }
 
-class Selection {
+export class Selection {
     entity: Entity | null = null;
 }
 
-class TransformGizmo {
+export class TransformGizmo {
     mode: "translate" = "translate";
     axis: "x" | "y" | "z" | "free" | null = null;
 
@@ -196,7 +196,7 @@ class TransformGizmo {
     startPointWorld: vec3 | null = null;
 }
 
-class Renderer {
+export class Renderer {
     gl: WebGL2RenderingContext
     program: WebGLProgram;
 

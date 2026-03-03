@@ -1,5 +1,5 @@
 import { mat3, mat4, quat, vec2, vec3 } from "gl-matrix";
-import { vertexShaderSource, fragmentShaderSource } from "./shaders";
+import { vertexShaderSource, fragmentShaderSource, skyboxVertexShaderSource, skyboxFragmentShaderSource } from "./shaders";
 import { screenPointToRay, rayTriangleIntersection, makeGizmo, transformVertices, orientZAxisGizmo, transformRay } from "./utils"
 import { gjk3d } from "./gjk";
 
@@ -63,8 +63,8 @@ export class Transform {
 
     constructor(
         params: Partial<P> = {
-            position: vec3.create(), 
-            rotation: quat.create(), 
+            position: vec3.create(),
+            rotation: quat.create(),
             scale: vec3.fromValues(1, 1, 1),
         }
     ) {
@@ -98,6 +98,14 @@ export class Material {
         this.color = color;
     }
 }
+
+type CubeMapFace =
+    WebGL2RenderingContext["TEXTURE_CUBE_MAP_POSITIVE_X"] |
+    WebGL2RenderingContext["TEXTURE_CUBE_MAP_NEGATIVE_X"] |
+    WebGL2RenderingContext["TEXTURE_CUBE_MAP_POSITIVE_Y"] |
+    WebGL2RenderingContext["TEXTURE_CUBE_MAP_NEGATIVE_Y"] |
+    WebGL2RenderingContext["TEXTURE_CUBE_MAP_POSITIVE_Z"] |
+    WebGL2RenderingContext["TEXTURE_CUBE_MAP_NEGATIVE_Z"];
 
 export class Entity {
     id: number;
@@ -143,7 +151,7 @@ export class Entity {
     //         this.transform.clone()
     //     );
     // }
-    
+
     
 }
 
@@ -180,7 +188,7 @@ export class CollisionSystem {
 
                 if (gjk3d(a, b)) {
                     this.collisions.push({
-                        a: entity1, b: entity2, 
+                        a: entity1, b: entity2,
                     });
                 }
             }
@@ -203,8 +211,10 @@ export class TransformGizmo {
 export class Renderer {
     private gl: WebGL2RenderingContext
     private program: WebGLProgram;
+    private skyboxProgram: WebGLProgram;
     private canvas: HTMLCanvasElement;
-    
+    private skyboxVao: WebGLVertexArrayObject | null = null;
+
 
     constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas;
@@ -219,6 +229,7 @@ export class Renderer {
         this.gl = gl;
 
         this.program = this._initializeProgram();
+        this.skyboxProgram = this.createSkyBoxProgram();
 
         gl.enable(gl.DEPTH_TEST);
         // gl.enable(gl.BLEND);
@@ -233,7 +244,7 @@ export class Renderer {
         const gl = this.gl;
         if (d) {
             gl.enable(gl.DEPTH_TEST);
-            gl.depthMask(true); 
+            gl.depthMask(true);
         } else {
             gl.disable(gl.DEPTH_TEST);
             gl.depthMask(false);
@@ -264,7 +275,13 @@ export class Renderer {
     }
 
     render(scene: Scene, camera: Camera) {
+        const gl = this.gl;
         this.depth(true);
+        gl.depthFunc(gl.LESS);
+
+        this.gl.linkProgram(this.program);
+        this.gl.useProgram(this.program);
+
         for (const entity of scene.entities) {
             this.drawMesh(entity, entity.material.color, camera);
         }
@@ -276,6 +293,7 @@ export class Renderer {
     }
 
     drawMesh(entity: Entity, color: vec3, camera: mat4) {
+        this.gl.useProgram(this.program);
         this.gl.bindVertexArray(entity.mesh!.vao);
         if (!entity.mesh!.indexCount) {
             this.gl.bindVertexArray(entity.mesh!.vao);
@@ -311,7 +329,7 @@ export class Renderer {
         }
     }
 
-    drawLines(entity: Entity, color: vec3 = vec3.fromValues(1,0,0)) {
+    drawLines(entity: Entity, color: vec3 = vec3.fromValues(1, 0, 0)) {
         const gl = this.gl
         const uColour = this.gl.getUniformLocation(this.program, "uColour");
 
@@ -369,4 +387,120 @@ export class Renderer {
         gl.bindVertexArray(null);
         return mesh;
     }
+
+    createSkyBoxProgram() {
+        const gl = this.gl;
+        const program = gl.createProgram();
+
+        const vertexShader = gl.createShader(gl.VERTEX_SHADER)!;
+        gl.shaderSource(vertexShader, skyboxVertexShaderSource);
+        gl.compileShader(vertexShader);
+
+        if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
+            console.error(gl.getShaderInfoLog(vertexShader));
+        }
+
+        const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER)!;
+        gl.shaderSource(fragmentShader, skyboxFragmentShaderSource);
+        gl.compileShader(fragmentShader);
+
+        if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
+            console.error(gl.getShaderInfoLog(fragmentShader));
+        }
+
+        gl.attachShader(program, vertexShader);
+        gl.attachShader(program, fragmentShader);
+        gl.linkProgram(program);
+
+        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+            console.error(gl.getProgramInfoLog(program));
+        }
+
+        return program;
+    }
+
+    createCubeMap(faceInfos: Array<{ target: CubeMapFace, url: string, width: number, height: number }>) {
+        const program = this.skyboxProgram;
+        this.gl.linkProgram(program);
+        this.gl.useProgram(program);
+
+        const gl = this.gl;
+        var texture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture);
+
+        faceInfos.forEach((faceInfo) => {
+            const { target, url } = faceInfo;
+
+            const level = 0;
+            const internalFormat = gl.RGBA;
+            const format = gl.RGBA;
+            const type = gl.UNSIGNED_BYTE;
+
+            gl.texImage2D(target, level, internalFormat, faceInfo.width, faceInfo.height, 0, format, type, null);
+
+            const image = new Image();
+            image.src = url;
+            image.addEventListener('load', function () {
+                gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture);
+                gl.texImage2D(target, level, internalFormat, format, type, image);
+                gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
+            });
+        });
+        gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
+        gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+
+        this.pushPlaneToGpu();
+    }
+
+    pushPlaneToGpu() {
+        const quad = new Float32Array([
+            -1, -1,
+            1, -1,
+            -1, 1,
+            -1, 1,
+            1, -1,
+            1, 1,
+        ]);
+
+        const gl = this.gl;
+
+        this.skyboxVao = gl.createVertexArray();
+        gl.bindVertexArray(this.skyboxVao);
+
+        const buffer = this.gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        gl.bufferData(gl.ARRAY_BUFFER, quad, gl.STATIC_DRAW);
+
+        const positionLocation = gl.getAttribLocation(this.skyboxProgram, "a_position");
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        gl.enableVertexAttribArray(positionLocation);
+        gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+        gl.bindVertexArray(null);
+
+    }
+
+    drawSkybox(camera: mat4) {
+        const gl = this.gl;
+        const program = this.skyboxProgram;
+
+        gl.useProgram(program);
+        gl.bindVertexArray(this.skyboxVao);
+        gl.depthFunc(gl.LEQUAL);
+        gl.depthMask(false);
+
+        const skyboxLocation = gl.getUniformLocation(program, "u_skybox");
+        const viewDirectionProjectionInverseLocation =
+            gl.getUniformLocation(program, "u_viewDirectionProjectionInverse");
+
+        const viewDirectionProjectionInverseMatrix = camera;
+        gl.uniformMatrix4fv(
+            viewDirectionProjectionInverseLocation, false,
+            viewDirectionProjectionInverseMatrix);
+
+        gl.uniform1i(skyboxLocation, 0);
+
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+    }
 }
+

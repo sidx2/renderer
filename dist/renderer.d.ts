@@ -39,6 +39,7 @@ export declare class Material {
     color: vec3;
     constructor(color?: vec3);
 }
+type CubeMapFace = WebGL2RenderingContext["TEXTURE_CUBE_MAP_POSITIVE_X"] | WebGL2RenderingContext["TEXTURE_CUBE_MAP_NEGATIVE_X"] | WebGL2RenderingContext["TEXTURE_CUBE_MAP_POSITIVE_Y"] | WebGL2RenderingContext["TEXTURE_CUBE_MAP_NEGATIVE_Y"] | WebGL2RenderingContext["TEXTURE_CUBE_MAP_POSITIVE_Z"] | WebGL2RenderingContext["TEXTURE_CUBE_MAP_NEGATIVE_Z"];
 export declare class Entity {
     id: number;
     transform: Transform;
@@ -77,7 +78,9 @@ export declare class TransformGizmo {
 export declare class Renderer {
     private gl;
     private program;
+    private skyboxProgram;
     private canvas;
+    private skyboxVao;
     constructor(canvas: HTMLCanvasElement);
     private depth;
     private _initializeProgram;
@@ -86,6 +89,15 @@ export declare class Renderer {
     drawMesh(entity: Entity, color: vec3, camera: mat4): void;
     drawLines(entity: Entity, color?: vec3): void;
     createMesh(geometry: Geometry, drawType?: GLenum): Mesh;
+    createSkyBoxProgram(): WebGLProgram;
+    createCubeMap(faceInfos: Array<{
+        target: CubeMapFace;
+        url: string;
+        width: number;
+        height: number;
+    }>): void;
+    pushPlaneToGpu(): void;
+    drawSkybox(camera: mat4): void;
 }
 export {};
 //# sourceMappingURL=renderer.d.ts.map

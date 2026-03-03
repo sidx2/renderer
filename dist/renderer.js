@@ -1,5 +1,5 @@
 import { mat3, mat4, quat, vec2, vec3 } from "gl-matrix";
-import { vertexShaderSource, fragmentShaderSource } from "./shaders";
+import { vertexShaderSource, fragmentShaderSource, skyboxVertexShaderSource, skyboxFragmentShaderSource } from "./shaders";
 import { transformVertices } from "./utils";
 import { gjk3d } from "./gjk";
 export class Input {
@@ -130,6 +130,7 @@ export class TransformGizmo {
 }
 export class Renderer {
     constructor(canvas) {
+        this.skyboxVao = null;
         this.canvas = canvas;
         const gl = this.canvas.getContext("webgl2");
         const w = canvas.width;
@@ -139,6 +140,7 @@ export class Renderer {
         }
         this.gl = gl;
         this.program = this._initializeProgram();
+        this.skyboxProgram = this.createSkyBoxProgram();
         gl.enable(gl.DEPTH_TEST);
         // gl.enable(gl.BLEND);
         // gl.depthMask(false);
@@ -177,7 +179,11 @@ export class Renderer {
         return program;
     }
     render(scene, camera) {
+        const gl = this.gl;
         this.depth(true);
+        gl.depthFunc(gl.LESS);
+        this.gl.linkProgram(this.program);
+        this.gl.useProgram(this.program);
         for (const entity of scene.entities) {
             this.drawMesh(entity, entity.material.color, camera);
         }
@@ -187,6 +193,7 @@ export class Renderer {
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
     }
     drawMesh(entity, color, camera) {
+        this.gl.useProgram(this.program);
         this.gl.bindVertexArray(entity.mesh.vao);
         if (!entity.mesh.indexCount) {
             this.gl.bindVertexArray(entity.mesh.vao);
@@ -255,5 +262,97 @@ export class Renderer {
         mesh.geometry = geometry;
         gl.bindVertexArray(null);
         return mesh;
+    }
+    createSkyBoxProgram() {
+        const gl = this.gl;
+        const program = gl.createProgram();
+        const vertexShader = gl.createShader(gl.VERTEX_SHADER);
+        gl.shaderSource(vertexShader, skyboxVertexShaderSource);
+        gl.compileShader(vertexShader);
+        if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
+            console.error(gl.getShaderInfoLog(vertexShader));
+        }
+        const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+        gl.shaderSource(fragmentShader, skyboxFragmentShaderSource);
+        gl.compileShader(fragmentShader);
+        if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
+            console.error(gl.getShaderInfoLog(fragmentShader));
+        }
+        gl.attachShader(program, vertexShader);
+        gl.attachShader(program, fragmentShader);
+        gl.linkProgram(program);
+        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+            console.error(gl.getProgramInfoLog(program));
+        }
+        return program;
+    }
+    createCubeMap(faceInfos) {
+        // Create a texture.
+        const program = this.skyboxProgram;
+        this.gl.linkProgram(program);
+        this.gl.useProgram(program);
+        const gl = this.gl;
+        var texture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture);
+        // const faceInfos = [
+        //     {
+        //         target: gl.TEXTURE_CUBE_MAP_POSITIVE_X,
+        //         url: 'resources/images/computer-history-museum/pos-x.jpg',
+        //     },
+        //      ...
+        // ];
+        faceInfos.forEach((faceInfo) => {
+            const { target, url } = faceInfo;
+            const level = 0;
+            const internalFormat = gl.RGBA;
+            const format = gl.RGBA;
+            const type = gl.UNSIGNED_BYTE;
+            gl.texImage2D(target, level, internalFormat, faceInfo.width, faceInfo.height, 0, format, type, null);
+            const image = new Image();
+            image.src = url;
+            image.addEventListener('load', function () {
+                gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture);
+                gl.texImage2D(target, level, internalFormat, format, type, image);
+                gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
+            });
+        });
+        gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
+        gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+        this.pushPlaneToGpu();
+    }
+    pushPlaneToGpu() {
+        const quad = new Float32Array([
+            -1, -1,
+            1, -1,
+            -1, 1,
+            -1, 1,
+            1, -1,
+            1, 1,
+        ]);
+        const gl = this.gl;
+        this.skyboxVao = gl.createVertexArray();
+        gl.bindVertexArray(this.skyboxVao);
+        const buffer = this.gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        gl.bufferData(gl.ARRAY_BUFFER, quad, gl.STATIC_DRAW);
+        const positionLocation = gl.getAttribLocation(this.skyboxProgram, "a_position");
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        gl.enableVertexAttribArray(positionLocation);
+        gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+        gl.bindVertexArray(null);
+    }
+    drawSkybox(camera) {
+        const gl = this.gl;
+        const program = this.skyboxProgram;
+        gl.useProgram(program);
+        gl.bindVertexArray(this.skyboxVao);
+        gl.depthFunc(gl.LEQUAL);
+        gl.depthMask(false);
+        const skyboxLocation = gl.getUniformLocation(program, "u_skybox");
+        const viewDirectionProjectionInverseLocation = gl.getUniformLocation(program, "u_viewDirectionProjectionInverse");
+        const viewDirectionProjectionInverseMatrix = camera;
+        gl.uniformMatrix4fv(viewDirectionProjectionInverseLocation, false, viewDirectionProjectionInverseMatrix);
+        gl.uniform1i(skyboxLocation, 0);
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
     }
 }

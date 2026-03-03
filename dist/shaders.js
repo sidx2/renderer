@@ -38,3 +38,31 @@ void main() {
 }
 
 `;
+// M * tM = cM;
+export const skyboxVertexShaderSource = `#version 300 es
+precision mediump float;
+
+in vec4 a_position;
+out vec4 v_position;
+
+void main() {
+    v_position = a_position;
+    gl_Position = a_position;
+    gl_Position.z = 1.0;
+}
+`;
+export const skyboxFragmentShaderSource = `#version 300 es
+precision mediump float;
+
+uniform samplerCube u_skybox;
+uniform mat4 u_viewDirectionProjectionInverse;
+ 
+in vec4 v_position;
+out vec4 outColor;
+
+void main() {
+    vec4 t = u_viewDirectionProjectionInverse * v_position;
+    outColor = texture(u_skybox, normalize(t.xyz / t.w));
+    // outColor = vec4(1., 0.5, 0.25, 1.0);
+}
+`;
